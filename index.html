@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>营养摄入计算器 - 增肌 · 减肥 · 保持身材</title>
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4f8;
+    --card-bg: #ffffff;
+    --text: #2d3748;
+    --text-secondary: #718096;
+    --border: #e2e8f0;
+    --muscle: #3182ce;
+    --muscle-light: #ebf4ff;
+    --muscle-bg: #ebf8ff;
+    --loss: #38a169;
+    --loss-light: #e6fffa;
+    --loss-bg: #f0fff4;
+    --maintain: #805ad5;
+    --maintain-light: #faf5ff;
+    --maintain-bg: #faf5ff;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --transition: 0.2s ease;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #e8edf5 0%, #f0f4f8 30%, #e8f0f8 60%, #ede8f5 100%);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    text-align: center;
+    padding: 40px 20px 20px;
+  }
+  .header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #3182ce, #805ad5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .header p {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+  }
+
+  /* ===== Container ===== */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  /* ===== Form Card ===== */
+  .form-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 32px;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 32px;
+  }
+  .form-card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-group label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .form-group input,
+  .form-group select {
+    padding: 12px 16px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    transition: var(--transition);
+    background: #f7fafc;
+    font-family: inherit;
+  }
+  .form-group input:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+    background: #fff;
+  }
+  .btn-calculate {
+    grid-column: 1 / -1;
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #3182ce, #2b6cb0);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 14px rgba(49, 130, 206, 0.35);
+  }
+  .btn-calculate:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(49, 130, 206, 0.45);
+  }
+  .btn-calculate:active {
+    transform: translateY(0);
+  }
+
+  /* ===== Results ===== */
+  .results-section {
+    display: none;
+  }
+  .results-section.visible {
+    display: block;
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 36px;
+  }
+
+  /* ===== Goal Card ===== */
+  .goal-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition);
+    border-top: 4px solid;
+    position: relative;
+    overflow: hidden;
+  }
+  .goal-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 120px; height: 120px;
+    border-radius: 0 0 0 100%;
+    opacity: 0.06;
+    pointer-events: none;
+  }
+  .goal-card.muscle { border-top-color: var(--muscle); }
+  .goal-card.muscle::before { background: var(--muscle); }
+  .goal-card.loss { border-top-color: var(--loss); }
+  .goal-card.loss::before { background: var(--loss); }
+  .goal-card.maintain { border-top-color: var(--maintain); }
+  .goal-card.maintain::before { background: var(--maintain); }
+
+  .goal-card .goal-icon { font-size: 2rem; margin-bottom: 4px; }
+  .goal-card h3 { font-size: 1.3rem; margin-bottom: 4px; }
+  .goal-card .goal-subtitle { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px; }
+
+  .calorie-big {
+    text-align: center;
+    margin: 16px 0 20px;
+  }
+  .calorie-big .number {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .goal-card.muscle .number { color: var(--muscle); }
+  .goal-card.loss .number { color: var(--loss); }
+  .goal-card.maintain .number { color: var(--maintain); }
+  .calorie-big .unit { font-size: 1rem; color: var(--text-secondary); }
+
+  /* ===== Macro Bars ===== */
+  .macro-list { display: flex; flex-direction: column; gap: 12px; }
+  .macro-item { }
+  .macro-item .macro-header {
+    display: flex; justify-content: space-between;
+    font-size: 0.9rem; margin-bottom: 4px;
+  }
+  .macro-item .macro-name { font-weight: 600; }
+  .macro-item .macro-value { color: var(--text-secondary); }
+  .macro-bar {
+    height: 8px; border-radius: 4px;
+    background: #edf2f7; overflow: hidden;
+  }
+  .macro-bar .fill {
+    height: 100%; border-radius: 4px; transition: width 0.6s ease;
+  }
+  .fill.protein { background: linear-gradient(90deg, #fc8181, #e53e3e); }
+  .fill.fat { background: linear-gradient(90deg, #f6ad55, #dd6b20); }
+  .fill.carbs { background: linear-gradient(90deg, #68d391, #38a169); }
+
+  /* ===== Meal Plan ===== */
+  .meal-section {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 32px;
+    box-shadow: var(--shadow-md);
+  }
+  .meal-section h2 {
+    font-size: 1.3rem;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .meal-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .meal-tab {
+    padding: 10px 20px;
+    border: 2px solid var(--border);
+    border-radius: 50px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: var(--transition);
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .meal-tab:hover { border-color: #a0aec0; }
+  .meal-tab.active { color: #fff; border-color: transparent; }
+  .meal-tab.active.muscle { background: var(--muscle); }
+  .meal-tab.active.loss { background: var(--loss); }
+  .meal-tab.active.maintain { background: var(--maintain); }
+
+  .meal-content { display: none; }
+  .meal-content.active { display: block; }
+
+  .meal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+  .meal-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    transition: var(--transition);
+  }
+  .meal-card:hover { box-shadow: var(--shadow-sm); }
+  .meal-card h4 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .meal-card ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .meal-card li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+  .meal-card .food-name { font-weight: 500; }
+  .meal-card .food-amount {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    background: #f7fafc;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .meal-total {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ===== Info Banner ===== */
+  .info-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #fffff0;
+    border: 1px solid #f6e05e;
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin-top: 24px;
+    font-size: 0.9rem;
+    color: #744210;
+  }
+  .info-banner .info-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+  /* ===== Footer ===== */
+  .footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 700px) {
+    .header h1 { font-size: 1.6rem; }
+    .form-card { padding: 20px; }
+    .cards-grid { grid-template-columns: 1fr; }
+    .calorie-big .number { font-size: 2.4rem; }
+    .meal-grid { grid-template-columns: 1fr; }
+    .meal-tabs { gap: 6px; }
+    .meal-tab { padding: 8px 14px; font-size: 0.85rem; }
+  }
+
+  /* ===== Animation ===== */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .goal-card { animation: fadeInUp 0.5s ease forwards; }
+  .goal-card:nth-child(2) { animation-delay: 0.1s; }
+  .goal-card:nth-child(3) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍎 营养摄入计算器</h1>
+  <p>科学计算你的每日摄入量，增肌 · 减肥 · 保持身材</p>
+</div>
+
+<div class="container">
+
+  <!-- ===== Input Form ===== -->
+  <div class="form-card">
+    <h2>📋 输入你的身体数据</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>性别</label>
+        <select id="gender">
+          <option value="male">男性</option>
+          <option value="female">女性</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>年龄（岁）</label>
+        <input type="number" id="age" placeholder="例如 25" min="10" max="100" value="25">
+      </div>
+      <div class="form-group">
+        <label>身高（cm）</label>
+        <input type="number" id="height" placeholder="例如 175" min="100" max="250" value="175">
+      </div>
+      <div class="form-group">
+        <label>体重（kg）</label>
+        <input type="number" id="weight" placeholder="例如 70" min="30" max="300" value="70">
+      </div>
+      <div class="form-group">
+        <label>活动水平</label>
+        <select id="activity">
+          <option value="1.2">久坐 — 几乎不运动</option>
+          <option value="1.375">轻度 — 每周运动 1-3 天</option>
+          <option value="1.55" selected>中度 — 每周运动 3-5 天</option>
+          <option value="1.725">高度 — 每周运动 6-7 天</option>
+          <option value="1.9">运动员 — 高强度训练 / 体力劳动</option>
+        </select>
+      </div>
+      <button class="btn-calculate" onclick="calculate()">🔍 开始计算</button>
+    </div>
+  </div>
+
+  <!-- ===== Results Cards ===== -->
+  <div class="results-section" id="resultsSection">
+    <div class="cards-grid" id="cardsGrid"></div>
+
+    <!-- ===== Meal Plans ===== -->
+    <div class="meal-section">
+      <h2>🍽️ 每日食谱推荐</h2>
+      <div class="meal-tabs" id="mealTabs"></div>
+      <div id="mealContents"></div>
+      <div class="info-banner">
+        <span class="info-icon">💡</span>
+        <span>以上食谱为参考建议，实际摄入请根据身体反馈灵活调整。烹饪方式优先选择蒸、煮、煎（少油），减少油炸和高糖调料。</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  营养数据参考中国食物成分表及 USDA · 计算结果仅供参考
+</div>
+
+<script>
+// ============================================================
+//  FOOD DATABASE  (per 100g: kcal, protein, fat, carbs)
+// ============================================================
+const FOODS = {
+  // 主食
+  rice:        { name: '米饭', cat: 'staple', kcal: 116, p: 2.6, f: 0.3, c: 25.9 },
+  brownRice:   { name: '糙米饭', cat: 'staple', kcal: 123, p: 2.7, f: 0.9, c: 25.6 },
+  bread:       { name: '全麦面包', cat: 'staple', kcal: 246, p: 10.4, f: 3.3, c: 43.3 },
+  oatmeal:     { name: '燕麦片', cat: 'staple', kcal: 377, p: 13.5, f: 6.7, c: 66.3 },
+  sweetPotato: { name: '红薯', cat: 'staple', kcal: 86, p: 1.6, f: 0.1, c: 20.1 },
+  corn:        { name: '玉米', cat: 'staple', kcal: 112, p: 4.0, f: 1.2, c: 22.8 },
+  pasta:       { name: '意面（熟）', cat: 'staple', kcal: 131, p: 5.0, f: 1.1, c: 24.9 },
+  noodle:      { name: '面条（煮）', cat: 'staple', kcal: 110, p: 3.5, f: 0.4, c: 23.0 },
+  mantou:      { name: '馒头', cat: 'staple', kcal: 223, p: 7.0, f: 1.1, c: 45.0 },
+
+  // 蛋白质
+  chickenBreast: { name: '鸡胸肉', cat: 'protein', kcal: 133, p: 25.0, f: 3.5, c: 0 },
+  chickenEgg:    { name: '鸡蛋', cat: 'protein', kcal: 144, p: 13.3, f: 9.5, c: 1.5 },
+  eggWhite:      { name: '鸡蛋白', cat: 'protein', kcal: 48, p: 11.0, f: 0, c: 0.8 },
+  beef:          { name: '瘦牛肉', cat: 'protein', kcal: 135, p: 22.0, f: 5.0, c: 0 },
+  pork:          { name: '猪里脊', cat: 'protein', kcal: 155, p: 20.0, f: 7.9, c: 0 },
+  tofu:          { name: '豆腐', cat: 'protein', kcal: 82, p: 8.1, f: 4.2, c: 3.5 },
+  fish:          { name: '三文鱼', cat: 'protein', kcal: 139, p: 20.0, f: 6.3, c: 0 },
+  shrimp:        { name: '虾仁', cat: 'protein', kcal: 93, p: 20.3, f: 1.0, c: 0 },
+  tilapia:       { name: '罗非鱼', cat: 'protein', kcal: 98, p: 20.0, f: 1.7, c: 0 },
+  milk:          { name: '牛奶', cat: 'protein', kcal: 54, p: 3.0, f: 3.2, c: 3.4 },
+  yogurt:        { name: '无糖酸奶', cat: 'protein', kcal: 63, p: 4.0, f: 3.5, c: 4.0 },
+  soyMilk:       { name: '豆浆', cat: 'protein', kcal: 31, p: 3.0, f: 1.6, c: 1.2 },
+
+  // 蔬菜
+  broccoli:    { name: '西兰花', cat: 'veggie', kcal: 34, p: 2.8, f: 0.4, c: 6.6 },
+  spinach:     { name: '菠菜', cat: 'veggie', kcal: 23, p: 2.9, f: 0.4, c: 3.6 },
+  tomato:      { name: '番茄', cat: 'veggie', kcal: 18, p: 0.9, f: 0.2, c: 3.9 },
+  cucumber:    { name: '黄瓜', cat: 'veggie', kcal: 15, p: 0.7, f: 0.1, c: 2.9 },
+  carrot:      { name: '胡萝卜', cat: 'veggie', kcal: 37, p: 1.0, f: 0.2, c: 8.8 },
+  lettuce:     { name: '生菜', cat: 'veggie', kcal: 13, p: 1.3, f: 0.3, c: 2.0 },
+  cabbage:     { name: '卷心菜', cat: 'veggie', kcal: 22, p: 1.5, f: 0.2, c: 4.6 },
+  mushroom:    { name: '香菇', cat: 'veggie', kcal: 26, p: 2.2, f: 0.3, c: 5.2 },
+  pepper:      { name: '青椒', cat: 'veggie', kcal: 20, p: 1.0, f: 0.2, c: 4.6 },
+
+  // 水果
+  apple:       { name: '苹果', cat: 'fruit', kcal: 53, p: 0.3, f: 0.2, c: 13.8 },
+  banana:      { name: '香蕉', cat: 'fruit', kcal: 93, p: 1.4, f: 0.3, c: 22.0 },
+  orange:      { name: '橙子', cat: 'fruit', kcal: 47, p: 0.9, f: 0.1, c: 11.8 },
+  blueberry:   { name: '蓝莓', cat: 'fruit', kcal: 57, p: 0.7, f: 0.3, c: 14.5 },
+  kiwi:        { name: '猕猴桃', cat: 'fruit', kcal: 61, p: 1.1, f: 0.5, c: 14.7 },
+
+  // 脂肪
+  nuts:        { name: '混合坚果', cat: 'fat', kcal: 607, p: 18.0, f: 54.0, c: 16.0 },
+  peanut:      { name: '花生', cat: 'fat', kcal: 567, p: 24.8, f: 49.2, c: 16.1 },
+  oliveOil:    { name: '橄榄油', cat: 'fat', kcal: 884, p: 0, f: 100, c: 0 },
+  avocado:     { name: '牛油果', cat: 'fat', kcal: 160, p: 2.0, f: 14.7, c: 8.5 },
+};
+
+// ============================================================
+//  CALCULATION ENGINE
+// ============================================================
+function calcBMR(gender, weight, height, age) {
+  // Mifflin-St Jeor
+  const base = 10 * weight + 6.25 * height - 5 * age;
+  return gender === 'male' ? base + 5 : base - 161;
+}
+
+function calcTDEE(bmr, activityFactor) {
+  return Math.round(bmr * activityFactor);
+}
+
+function calcGoals(bmr, activityFactor, weight) {
+  const tdee = calcTDEE(bmr, activityFactor);
+
+  const goals = {
+    muscle: {
+      name: '增肌',
+      icon: '💪',
+      subtitle: '热量盈余 · 促进肌肉合成',
+      cssClass: 'muscle',
+      calories: Math.round(tdee + 300),
+      proteinPerKg: 2.0,
+    },
+    loss: {
+      name: '减肥',
+      icon: '🔥',
+      subtitle: '热量赤字 · 安全减脂',
+      cssClass: 'loss',
+      calories: Math.round(tdee - 400),
+      proteinPerKg: 2.2,
+    },
+    maintain: {
+      name: '保持身材',
+      icon: '⚖️',
+      subtitle: '热量平衡 · 维持当前体重',
+      cssClass: 'maintain',
+      calories: tdee,
+      proteinPerKg: 1.8,
+    },
+  };
+
+  // Ensure minimum calories
+  for (const key of Object.keys(goals)) {
+    const minCal = key === 'loss' ? 1200 : 1500;
+    if (goals[key].calories < minCal) goals[key].calories = minCal;
+  }
+
+  // Calculate macros for each goal
+  for (const key of Object.keys(goals)) {
+    const g = goals[key];
+    g.protein = Math.round(g.proteinPerKg * weight);           // grams of protein
+    const proteinCal = g.protein * 4;
+    g.fat = Math.round(g.calories * 0.25 / 9);                  // 25% from fat
+    const fatCal = g.fat * 9;
+    const remainingCal = g.calories - proteinCal - fatCal;
+    g.carbs = Math.max(0, Math.round(remainingCal / 4));       // rest from carbs
+    g.proteinCal = proteinCal;
+    g.fatCal = fatCal;
+    g.carbsCal = remainingCal > 0 ? remainingCal : 0;
+  }
+
+  return { bmr, tdee, goals };
+}
+
+// ============================================================
+//  MEAL PLAN GENERATOR
+// ============================================================
+function generateMealPlan(targetCal, targetProtein, targetFat, targetCarbs, goalType) {
+  // Distribute calories: breakfast 30%, lunch 40%, dinner 30%
+  const meals = [
+    { name: '🥣 早餐', pct: 0.30, items: [] },
+    { name: '🍱 午餐', pct: 0.40, items: [] },
+    { name: '🌙 晚餐', pct: 0.30, items: [] },
+  ];
+
+  // Food selection pools - different priorities per goal
+  const staplePool = goalType === 'loss'
+    ? ['sweetPotato', 'corn', 'brownRice', 'oatmeal', 'rice']
+    : ['rice', 'brownRice', 'sweetPotato', 'bread', 'pasta', 'mantou', 'noodle'];
+
+  const proteinPool = goalType === 'muscle'
+    ? ['chickenBreast', 'beef', 'fish', 'shrimp', 'chickenEgg', 'tofu', 'milk']
+    : ['chickenBreast', 'shrimp', 'tilapia', 'tofu', 'chickenEgg', 'fish', 'pork'];
+
+  const veggiePool = ['broccoli', 'spinach', 'tomato', 'cucumber', 'carrot', 'lettuce', 'cabbage', 'mushroom', 'pepper'];
+  const fruitPool = ['apple', 'banana', 'orange', 'blueberry', 'kiwi'];
+
+  let remainingProtein = targetProtein;
+  let remainingCarbs = targetCarbs;
+  let remainingFat = targetFat;
+
+  for (const meal of meals) {
+    const mealCal = targetCal * meal.pct;
+    const mealProtein = targetProtein * meal.pct;
+    const mealCarbs = targetCarbs * meal.pct;
+    const mealFat = targetFat * meal.pct;
+
+    // Pick 1 staple
+    const stapleKey = pickFromPool(staplePool, meal, mealCal * 0.45);
+    const stapleAmount = portionForCal(FOODS[stapleKey], mealCal * 0.45);
+    meal.items.push({ food: FOODS[stapleKey], amount: stapleAmount, key: stapleKey });
+
+    // Pick 1-2 proteins
+    const proteinKey1 = pickFromPool(proteinPool, meal, mealCal * 0.35);
+    const proteinAmount1 = portionForCal(FOODS[proteinKey1], mealCal * 0.25);
+    meal.items.push({ food: FOODS[proteinKey1], amount: proteinAmount1, key: proteinKey1 });
+
+    if (goalType === 'muscle' && meal.pct >= 0.35) {
+      const proteinKey2 = pickFromPool(proteinPool.filter(k => k !== proteinKey1), meal, mealCal * 0.15);
+      const proteinAmount2 = portionForCal(FOODS[proteinKey2], mealCal * 0.12);
+      meal.items.push({ food: FOODS[proteinKey2], amount: proteinAmount2, key: proteinKey2 });
+    }
+
+    // Pick 1-2 veggies
+    const veggieKey = pickFromPool(veggiePool, meal, 30);
+    meal.items.push({ food: FOODS[veggieKey], amount: 150 + Math.floor(Math.random() * 100), key: veggieKey });
+
+    // Breakfast: add fruit or egg
+    if (meal.name.includes('早餐')) {
+      const fruitKey = pickFromPool(fruitPool, meal, 50);
+      meal.items.push({ food: FOODS[fruitKey], amount: 100 + Math.floor(Math.random() * 100), key: fruitKey });
+      // Add an egg
+      meal.items.push({ food: FOODS['chickenEgg'], amount: 100, key: 'chickenEgg' });
+    }
+
+    // Add healthy fat source
+    if (meal.name.includes('午餐') || meal.name.includes('晚餐')) {
+      meal.items.push({ food: FOODS['oliveOil'], amount: 5, key: 'oliveOil' });
+    } else {
+      meal.items.push({ food: FOODS['nuts'], amount: 10, key: 'nuts' });
+    }
+  }
+
+  // Calculate totals per meal
+  for (const meal of meals) {
+    meal.totalKcal = 0;
+    meal.totalP = 0;
+    meal.totalF = 0;
+    meal.totalC = 0;
+    for (const item of meal.items) {
+      const factor = item.amount / 100;
+      meal.totalKcal += item.food.kcal * factor;
+      meal.totalP += item.food.p * factor;
+      meal.totalF += item.food.f * factor;
+      meal.totalC += item.food.c * factor;
+    }
+    meal.totalKcal = Math.round(meal.totalKcal);
+    meal.totalP = Math.round(meal.totalP);
+    meal.totalF = Math.round(meal.totalF);
+    meal.totalC = Math.round(meal.totalC);
+  }
+
+  return meals;
+}
+
+function pickFromPool(pool, meal, targetCal) {
+  // Deterministic-ish pick: hash meal name + target to get consistent results
+  let hash = 0;
+  const str = meal.name + targetCal;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return pool[Math.abs(hash) % pool.length];
+}
+
+function portionForCal(food, targetCal) {
+  const calPerGram = food.kcal / 100;
+  const raw = targetCal / calPerGram;
+  // Round to nice numbers
+  if (raw < 30) return Math.round(raw / 5) * 5;
+  if (raw < 100) return Math.round(raw / 10) * 10;
+  return Math.round(raw / 25) * 25;
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function renderResults(data) {
+  const { bmr, tdee, goals } = data;
+
+  // Goal cards
+  const cardsGrid = document.getElementById('cardsGrid');
+  cardsGrid.innerHTML = '';
+
+  for (const [key, goal] of Object.entries(goals)) {
+    const card = document.createElement('div');
+    card.className = `goal-card ${goal.cssClass}`;
+    card.innerHTML = `
+      <div class="goal-icon">${goal.icon}</div>
+      <h3>${goal.name}</h3>
+      <p class="goal-subtitle">${goal.subtitle}</p>
+      <div class="calorie-big">
+        <div class="number">${goal.calories}</div>
+        <div class="unit">千卡 / 天</div>
+      </div>
+      <div class="macro-list">
+        <div class="macro-item">
+          <div class="macro-header">
+            <span class="macro-name">🥩 蛋白质</span>
+            <span class="macro-value">${goal.protein}g（${goal.proteinCal} kcal）</span>
+          </div>
+          <div class="macro-bar"><div class="fill protein" style="width:${macroPct(goal, 'protein')}%"></div></div>
+        </div>
+        <div class="macro-item">
+          <div class="macro-header">
+            <span class="macro-name">🧈 脂肪</span>
+            <span class="macro-value">${goal.fat}g（${goal.fatCal} kcal）</span>
+          </div>
+          <div class="macro-bar"><div class="fill fat" style="width:${macroPct(goal, 'fat')}%"></div></div>
+        </div>
+        <div class="macro-item">
+          <div class="macro-header">
+            <span class="macro-name">🍚 碳水</span>
+            <span class="macro-value">${goal.carbs}g（${goal.carbsCal} kcal）</span>
+          </div>
+          <div class="macro-bar"><div class="fill carbs" style="width:${macroPct(goal, 'carbs')}%"></div></div>
+        </div>
+      </div>
+    `;
+    cardsGrid.appendChild(card);
+  }
+
+  // Meal plan tabs
+  const mealTabs = document.getElementById('mealTabs');
+  const mealContents = document.getElementById('mealContents');
+  mealTabs.innerHTML = '';
+  mealContents.innerHTML = '';
+
+  let firstTab = true;
+  const mealPlans = {};
+
+  for (const [key, goal] of Object.entries(goals)) {
+    mealPlans[key] = generateMealPlan(goal.calories, goal.protein, goal.fat, goal.carbs, key);
+
+    // Tab button
+    const tab = document.createElement('button');
+    tab.className = `meal-tab ${goal.cssClass}${firstTab ? ' active' : ''}`;
+    tab.textContent = `${goal.icon} ${goal.name}食谱`;
+    tab.onclick = () => switchMealTab(key, goal.cssClass);
+    mealTabs.appendChild(tab);
+
+    // Tab content
+    const content = document.createElement('div');
+    content.className = `meal-content${firstTab ? ' active' : ''}`;
+    content.id = `mealContent_${key}`;
+    content.innerHTML = `<div class="meal-grid">${mealPlans[key].map(meal => `
+      <div class="meal-card">
+        <h4>${meal.name}</h4>
+        <ul>
+          ${meal.items.map(item => `
+            <li>
+              <span class="food-name">${item.food.name}</span>
+              <span class="food-amount">${item.amount}g</span>
+            </li>
+          `).join('')}
+        </ul>
+        <div class="meal-total">
+          <span>合计</span>
+          <span>🔥 ${meal.totalKcal} kcal | 🥩 ${meal.totalP}g | 🧈 ${meal.totalF}g | 🍚 ${meal.totalC}g</span>
+        </div>
+      </div>
+    `).join('')}</div>`;
+    mealContents.appendChild(content);
+
+    firstTab = false;
+  }
+
+  // Store for tab switching
+  window._mealPlans = mealPlans;
+  window._goals = goals;
+
+  // Show results
+  document.getElementById('resultsSection').classList.add('visible');
+  document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function macroPct(goal, macro) {
+  const cal = macro === 'protein' ? goal.proteinCal : macro === 'fat' ? goal.fatCal : goal.carbsCal;
+  return Math.round((cal / goal.calories) * 100);
+}
+
+function switchMealTab(key, cssClass) {
+  // Update tabs
+  document.querySelectorAll('.meal-tab').forEach(t => t.classList.remove('active'));
+  const tabs = document.querySelectorAll('.meal-tab');
+  const goals = window._goals;
+  const goalKeys = Object.keys(goals);
+  const idx = goalKeys.indexOf(key);
+  if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
+
+  // Update content
+  document.querySelectorAll('.meal-content').forEach(c => c.classList.remove('active'));
+  const content = document.getElementById(`mealContent_${key}`);
+  if (content) content.classList.add('active');
+}
+
+// ============================================================
+//  MAIN
+// ============================================================
+function calculate() {
+  const gender = document.getElementById('gender').value;
+  const age = parseInt(document.getElementById('age').value) || 25;
+  const height = parseFloat(document.getElementById('height').value) || 175;
+  const weight = parseFloat(document.getElementById('weight').value) || 70;
+  const activity = parseFloat(document.getElementById('activity').value) || 1.55;
+
+  const bmr = calcBMR(gender, weight, height, age);
+  const data = calcGoals(bmr, activity, weight);
+
+  renderResults(data);
+}
+
+// Auto-calculate on page load
+window.addEventListener('DOMContentLoaded', () => {
+  calculate();
+});
+
+// Allow Enter key to trigger calculation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.tagName === 'INPUT') {
+    calculate();
+  }
+});
+</script>
+
+</body>
+</html>
